@@ -1,7 +1,7 @@
 import { CATS, CATALOG } from './catalog.js';
 
-const VERSION = '1.0';
-const K = { cfg: 'maqadi.cfg', data: 'maqadi.data', photos: 'maqadi.photos', me: 'maqadi.me' };
+const VERSION = '1.1';
+const K = { cfg: 'maqadi.cfg', data: 'maqadi.data', photos: 'maqadi.photos', me: 'maqadi.me', theme: 'maqadi.theme' };
 
 /* ---------- أدوات صغيرة ---------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -20,16 +20,20 @@ const CHECK = (n = 12) => `<svg width="${n}" height="${n}" viewBox="0 0 24 24" f
 const PEN = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const SHARE = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
 
-const catName = Object.fromEntries(CATS);
-const catOrder = Object.fromEntries(CATS.map((c, i) => [c[0], i]));
+const UP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>';
+const DOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+const baseCat = Object.fromEntries(CATS);
+let catName = {}, catOrder = {}, CL = [];
 const baseById = Object.fromEntries(CATALOG.map((c, i) => [c[0], { name: c[1], cat: c[2], emoji: c[3], order: i }]));
 
 /* ---------- الحالة ---------- */
-const blank = () => ({ sel: {}, got: {}, custom: {}, names: {}, cats: {}, hidden: {}, last: null });
+const MAPS = ['sel', 'got', 'custom', 'names', 'cats', 'hidden', 'catx'];
+const blank = () => ({ sel: {}, got: {}, custom: {}, names: {}, cats: {}, hidden: {}, catx: {}, last: null });
 function normalize(d) {
   const b = blank();
   d = d || {};
-  for (const k of ['sel', 'got', 'custom', 'names', 'cats', 'hidden']) b[k] = d[k] && typeof d[k] === 'object' ? d[k] : {};
+  for (const k of MAPS) b[k] = d[k] && typeof d[k] === 'object' ? d[k] : {};
   b.last = d.last && d.last.n ? d.last : null;
   return b;
 }
@@ -38,7 +42,7 @@ const S = {
   data: normalize(LS.get(K.data, null)),
   photos: LS.get(K.photos, {}) || {},
   ui: { mode: 'pick', cat: 'all', q: '', edit: false, pulse: null },
-  sync: 'local', syncErr: '',
+  sync: 'local', syncErr: '', photoErr: '',
   cfg: LS.get(K.cfg, null),
   me: LS.get(K.me, '') || ''
 };
@@ -68,17 +72,41 @@ function setPhoto(id, dataUrl) {
   render();
 }
 
+/* ---------- الأقسام ---------- */
+// catx: تعديلات الأقسام المتزامنة. للأقسام الجاهزة {n: اسم جديد, o: ترتيب, h: مخفي}، وللأقسام الجديدة {n, o, t}
+function catList() {
+  const x = S.data.catx, out = [];
+  CATS.forEach(([id, n], i) => {
+    const o = x[id] || {};
+    if (o.h && id !== 'other') return;
+    out.push({ id, name: o.n || n, base: true, o: typeof o.o === 'number' ? o.o : i });
+  });
+  for (const id of Object.keys(x)) {
+    const o = x[id];
+    if (baseCat[id] || !o || !o.n || o.h) continue;
+    out.push({ id, name: o.n, base: false, o: typeof o.o === 'number' ? o.o : 100 + (o.t || 0) / 1e13 });
+  }
+  return out.sort((a, b) => a.o - b.o);
+}
+function refreshCats() {
+  CL = catList();
+  catName = Object.fromEntries(CL.map((c) => [c.id, c.name]));
+  catOrder = Object.fromEntries(CL.map((c, i) => [c.id, i]));
+}
+const validCat = (c) => (catName[c] ? c : 'other');
+
 /* ---------- الأغراض ---------- */
 function allItems() {
+  refreshCats();
   const d = S.data, out = [];
   for (const [id, n, c, e] of CATALOG) {
     if (d.hidden[id]) continue;
-    out.push({ id, base: true, name: d.names[id] || n, baseName: n, cat: d.cats[id] || c, baseCat: c, emoji: e, order: baseById[id].order });
+    out.push({ id, base: true, name: d.names[id] || n, baseName: n, cat: validCat(d.cats[id] || c), baseCat: c, emoji: e, order: baseById[id].order });
   }
   for (const id of Object.keys(d.custom)) {
     const c = d.custom[id];
     if (!c || !c.n) continue;
-    out.push({ id, base: false, name: c.n, cat: catName[c.c] ? c.c : 'other', emoji: null, order: 10000 + (c.t || 0) / 1e13, t: c.t || 0 });
+    out.push({ id, base: false, name: c.n, cat: validCat(c.c), emoji: null, order: 10000 + (c.t || 0) / 1e13, t: c.t || 0 });
   }
   return out;
 }
@@ -103,9 +131,10 @@ function render() {
 function renderSync() {
   const map = { local: 'محلي', connecting: 'يتصل…', online: 'متزامن', offline: 'بلا اتصال', error: 'خطأ' };
   const long = { local: 'محفوظ على هذا الجوال فقط', connecting: 'جارٍ الاتصال', online: 'متزامن مع جوالات العائلة', offline: 'بدون اتصال، يُرسل لاحقاً', error: 'خطأ في المزامنة' };
-  $('#syncPill').className = 'pill ' + S.sync;
-  $('#syncTxt').textContent = map[S.sync];
-  $('#syncPill').setAttribute('aria-label', 'حالة المزامنة: ' + long[S.sync]);
+  const st = S.photoErr && S.sync === 'online' ? 'error' : S.sync;
+  $('#syncPill').className = 'pill ' + st;
+  $('#syncTxt').textContent = map[st];
+  $('#syncPill').setAttribute('aria-label', 'حالة المزامنة: ' + long[st]);
 }
 
 function counts() {
@@ -132,12 +161,12 @@ function renderTabs() {
 
 function renderChips() {
   const items = allItems();
-  const used = new Set(items.map((i) => i.cat));
+  if (S.ui.cat !== 'all' && S.ui.cat !== 'sel' && !catName[S.ui.cat]) S.ui.cat = 'all';
   const selN = items.filter((i) => S.data.sel[i.id]).length;
-  const chips = [['all', 'الكل'], ['sel', 'المطلوبة' + (selN ? ' ' + ar(selN) : '')]]
-    .concat(CATS.filter((c) => used.has(c[0]) || c[0] === S.ui.cat));
+  const chips = [['all', 'الكل'], ['sel', 'المطلوبة' + (selN ? ' ' + ar(selN) : '')]].concat(CL.map((c) => [c.id, c.name]));
   $('#chips').innerHTML = chips.map((c) =>
-    `<button type="button" data-cat="${c[0]}" aria-pressed="${c[0] === S.ui.cat}">${esc(c[1])}</button>`).join('');
+    `<button type="button" data-cat="${c[0]}" aria-pressed="${c[0] === S.ui.cat}">${esc(c[1])}</button>`).join('')
+    + (S.ui.edit ? '<button type="button" class="addcat" data-cats="1">+ الأقسام</button>' : '');
 }
 
 function tileHTML(i) {
@@ -384,7 +413,7 @@ function openEdit(id) {
     <div class="phrow"><span class="vis" id="eVis">${visual(it)}</span>
       <div class="btns" style="flex:1"><button type="button" class="btn ghost" id="ePick"></button><button type="button" class="btn ghost" id="eNoPh">إزالة الصورة</button></div></div>
     <div class="field"><label for="eName">الاسم</label><input id="eName" maxlength="40" value="${esc(it.name)}"></div>
-    <div class="field"><label for="eCat">القسم</label><select id="eCat">${CATS.map((c) => `<option value="${c[0]}"${c[0] === it.cat ? ' selected' : ''}>${esc(c[1])}</option>`).join('')}</select></div>
+    <div class="field"><label for="eCat">القسم</label><select id="eCat">${CL.map((c) => `<option value="${c.id}"${c.id === it.cat ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
     <div class="err" id="eErr"></div>
     <div class="btns"><button type="button" class="btn green" id="eSave">حفظ</button><button type="button" class="btn danger" id="eDel">${it.base ? 'إخفاء المربع' : 'حذف المربع'}</button></div>`,
   (root) => {
@@ -446,6 +475,98 @@ function openFinish() {
     };
   });
 }
+
+/* ---------- الأقسام: إضافة وتعديل ---------- */
+function openCats() {
+  const items = allItems();
+  const cnt = {};
+  for (const i of items) cnt[i.cat] = (cnt[i.cat] || 0) + 1;
+  const rows = CL.map((c, i) => `<div class="catrow" data-cid="${c.id}">
+      <label class="sr" for="cn_${c.id}">اسم القسم</label>
+      <input id="cn_${c.id}" maxlength="24" value="${esc(c.name)}">
+      <span class="cn">${ar(cnt[c.id] || 0)}</span>
+      <button type="button" data-up aria-label="تحريك للأعلى"${i === 0 ? ' disabled' : ''}>${UP}</button>
+      <button type="button" data-down aria-label="تحريك للأسفل"${i === CL.length - 1 ? ' disabled' : ''}>${DOWN}</button>
+      ${c.id === 'other' ? '' : '<button type="button" class="del" data-del>حذف</button>'}
+    </div>`).join('');
+  sheet(`<h2>الأقسام</h2>
+    <p>غيّر الاسم واضغط خارج الخانة ليُحفظ، ورتّب بالأسهم. عند حذف قسم تنتقل أغراضه إلى «${esc(catName.other)}».</p>
+    <div class="catlist">${rows}</div>
+    <form class="addrow" id="ncForm" autocomplete="off">
+      <label class="sr" for="ncName">قسم جديد</label>
+      <input id="ncName" maxlength="24" placeholder="اسم قسم جديد">
+      <button class="btn" type="submit">أضف</button></form>
+    <div class="err" id="cErr"></div>
+    <button type="button" class="btn ghost" id="cClose">تم</button>`,
+  (root) => {
+    const err = (m) => { $('#cErr', root).textContent = m; };
+    const taken = (name, except) => CL.some((c) => c.id !== except && norm(c.name) === norm(name));
+    const order = (ids) => { const ch = {}; ids.forEach((id, i) => { ch['catx.' + id + '.o'] = i; }); return ch; };
+    $('#cClose', root).onclick = closeSheet;
+    root.querySelectorAll('.catrow').forEach((row) => {
+      const id = row.dataset.cid;
+      const c = CL.find((x) => x.id === id);
+      const inp = $('input', row);
+      inp.onchange = () => {
+        const name = inp.value.trim().replace(/\s+/g, ' ');
+        if (!name) { inp.value = c.name; err('اسم القسم لا يكون فارغاً'); return; }
+        if (taken(name, id)) { inp.value = c.name; err('يوجد قسم بهذا الاسم'); return; }
+        err('');
+        if (name === c.name) return;
+        const def = baseCat[id];
+        apply({ ['catx.' + id + '.n']: def && name === def ? undefined : name });
+        toast('حُفظ اسم القسم');
+      };
+      inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } };
+      const move = (d) => {
+        const ids = CL.map((x) => x.id), i = ids.indexOf(id), j = i + d;
+        if (j < 0 || j >= ids.length) return;
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        apply(order(ids));
+        openCats();
+      };
+      $('[data-up]', row).onclick = () => move(-1);
+      $('[data-down]', row).onclick = () => move(1);
+      const del = $('[data-del]', row);
+      if (del) twoTap(del, 'تأكيد', () => {
+        if (S.ui.cat === id) S.ui.cat = 'all';
+        apply(baseCat[id] ? { ['catx.' + id + '.h']: true } : { ['catx.' + id]: undefined });
+        openCats();
+        toast('حُذف القسم');
+      });
+    });
+    $('#ncForm', root).onsubmit = (e) => {
+      e.preventDefault();
+      const name = $('#ncName', root).value.trim().replace(/\s+/g, ' ');
+      if (!name) { $('#ncName', root).focus(); return; }
+      if (taken(name)) { err('يوجد قسم بهذا الاسم'); return; }
+      const id = 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      const ids = CL.map((x) => x.id);
+      const oi = ids.indexOf('other');
+      ids.splice(oi < 0 ? ids.length : oi, 0, id);
+      apply(Object.assign(order(ids), { ['catx.' + id]: { n: name, t: Date.now(), o: ids.indexOf(id) } }));
+      openCats();
+      toast(`أُضيف قسم «${name}»`);
+    };
+  });
+}
+
+/* ---------- المظهر ---------- */
+const darkMQ = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+function systemDark() {
+  try { if (window.AndroidBridge && AndroidBridge.isNight) return !!AndroidBridge.isNight(); } catch (e) { /* قديم */ }
+  return !!(darkMQ && darkMQ.matches);
+}
+function applyTheme() {
+  const pref = LS.get(K.theme, 'light');
+  const dark = pref === 'dark' || (pref === 'auto' && systemDark());
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#111613' : '#F4F6F1');
+  try { if (window.AndroidBridge && AndroidBridge.setDark) AndroidBridge.setDark(dark); } catch (e) { /* قديم */ }
+}
+if (darkMQ && darkMQ.addEventListener) darkMQ.addEventListener('change', applyTheme);
+window.onSystemTheme = applyTheme;
 
 /* ---------- المزامنة ---------- */
 const b64e = (s) => btoa(unescape(encodeURIComponent(s)));
@@ -514,7 +635,7 @@ async function startCloud(cfg) {
     // أول تشغيل بعد الربط: ندمج ما كان محفوظاً على هذا الجوال دون مسح ما في السحابة
     const local = normalize(LS.get(K.data, null));
     const seed = { v: 1, ts: fb.serverTimestamp() };
-    for (const k of ['sel', 'got', 'custom', 'names', 'cats', 'hidden']) if (Object.keys(local[k]).length) seed[k] = local[k];
+    for (const k of MAPS) if (Object.keys(local[k]).length) seed[k] = local[k];
     fb.setDoc(ref, seed, { merge: true }).catch(syncError);
     LS.del(K.data);
     const localPhotos = LS.get(K.photos, {}) || {};
@@ -530,21 +651,29 @@ async function startCloud(cfg) {
       const p = {};
       qs.forEach((x) => { const d = x.data(); if (d && d.d) p[x.id] = d.d; });
       S.photos = p;
+      S.photoErr = '';
       render();
-    }, syncError);
+    }, (e) => { console.error(e); S.photoErr = (e && (e.code || e.message)) || 'photos'; S.syncErr = 'الصور: ' + S.photoErr; renderSync(); });
   } catch (e) { syncError(e); }
 }
 
 function openSettings() {
   const c = S.cfg;
-  const hiddenN = Object.keys(S.data.hidden).length;
+  const hiddenCats = CATS.filter((x) => x[0] !== 'other' && S.data.catx[x[0]] && S.data.catx[x[0]].h).map((x) => x[0]);
+  const hiddenN = Object.keys(S.data.hidden).length + hiddenCats.length;
+  const th = LS.get(K.theme, 'light');
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
   const standalone = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
-  const errMsg = S.sync === 'error'
+  const errMsg = (S.sync === 'error' || S.photoErr)
     ? `<p class="err">تعذّرت المزامنة (${esc(S.syncErr)}). تأكد من الإنترنت ومن قواعد Firestore المذكورة في الدليل.</p>` : '';
   sheet(`<h2>الإعدادات</h2>
     <div class="card"><h3>اسم هذا الجوال</h3><p>يظهر للطرف الثاني بجانب آخر غرض أضفته.</p>
       <div class="field"><label for="sMe" class="sr">اسم الجوال</label><input id="sMe" maxlength="24" placeholder="مثال: جوال منصور" value="${esc(S.me)}"></div></div>
+    <div class="card"><h3>المظهر</h3><p>خاص بهذا الجوال. «تلقائي» يتبع وضع الجوال.</p>
+      <div class="seg three" role="group" aria-label="المظهر">
+        <button type="button" data-th="light" aria-pressed="${th === 'light'}">فاتح</button>
+        <button type="button" data-th="dark" aria-pressed="${th === 'dark'}">غامق</button>
+        <button type="button" data-th="auto" aria-pressed="${th === 'auto'}">تلقائي</button></div></div>
     <div class="card"><h3>المزامنة بين الجوالات</h3>
       ${c ? `${errMsg}<p>هذا الجوال مربوط بقائمة العائلة. لربط جوال آخر أرسل له «رمز الربط» وألصقه عنده في الإعدادات.</p>
         <div class="field"><label for="sCode">رمز الربط</label><textarea id="sCode" readonly>${esc(joinCode(c))}</textarea></div>
@@ -559,6 +688,7 @@ function openSettings() {
         <div class="err" id="sErr"></div>`}
     </div>
     <div class="card"><h3>القائمة</h3>
+      <button type="button" class="btn ghost" id="sCats">إضافة وتعديل الأقسام</button>
       <div class="btns"><button type="button" class="btn ghost" id="sUnhide"${hiddenN ? '' : ' disabled'}>إظهار المخفي (${ar(hiddenN)})</button><button type="button" class="btn danger" id="sClear">تفريغ الطلبات</button></div></div>
     ${ios && !standalone ? '<div class="card"><h3>تثبيت على الآيفون</h3><p>من Safari اضغط زر المشاركة ثم «إضافة إلى الشاشة الرئيسية».</p></div>' : ''}
     <p class="about">مقاضي البيت · الإصدار ${VERSION}<br>تطوير: منصور مستور الزهراني<br><a href="mailto:man.zs2020@gmail.com">man.zs2020@gmail.com</a></p>
@@ -566,7 +696,19 @@ function openSettings() {
   (root) => {
     $('#sClose', root).onclick = closeSheet;
     $('#sMe', root).oninput = (e) => { S.me = e.target.value.trim(); LS.set(K.me, S.me); };
-    $('#sUnhide', root).onclick = () => { apply({ hidden: {} }); closeSheet(); toast('ظهرت الأغراض المخفية'); };
+    $('#sUnhide', root).onclick = () => {
+      const ch = { hidden: {} };
+      for (const id of hiddenCats) ch['catx.' + id + '.h'] = undefined;
+      apply(ch); closeSheet(); toast('ظهر المخفي');
+    };
+    $('#sCats', root).onclick = openCats;
+    root.querySelectorAll('[data-th]').forEach((b) => {
+      b.onclick = () => {
+        LS.set(K.theme, b.dataset.th);
+        applyTheme();
+        root.querySelectorAll('[data-th]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      };
+    });
     twoTap($('#sClear', root), 'اضغط مرة أخرى للتأكيد', () => { apply({ sel: {}, got: {} }); closeSheet(); toast('فُرّغت الطلبات'); });
     if (c) {
       const code = joinCode(c);
@@ -606,6 +748,7 @@ function bind() {
   $('#addForm').onsubmit = (e) => { e.preventDefault(); addFromInput(); };
   $('#q').oninput = (e) => { S.ui.q = e.target.value; renderGrid(); };
   $('#chips').onclick = (e) => {
+    if (e.target.closest('[data-cats]')) { openCats(); return; }
     const b = e.target.closest('[data-cat]');
     if (!b) return;
     S.ui.cat = b.dataset.cat;
@@ -635,9 +778,15 @@ function bind() {
   };
 }
 
+applyTheme();
 bind();
 render();
 if (S.cfg) startCloud(S.cfg);
 if ('serviceWorker' in navigator && !window.AndroidBridge && location.protocol === 'https:') {
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  // عند وصول نسخة جديدة من التطبيق: إعادة تحميل تلقائية مرة واحدة (إن لم تكن نافذة مفتوحة)
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && !sheetOpen && !window.__reloaded) { window.__reloaded = true; location.reload(); }
+  });
 }
