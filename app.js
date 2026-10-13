@@ -1,6 +1,7 @@
-import { CATS, CATALOG } from './catalog.js';
+import { CATS, CATALOG, RETIRED } from './catalog.js';
 
-const VERSION = '1.1';
+const VERSION = '1.2';
+const DATA_VER = 2; // رقم ترحيل البيانات: 2 = قائمة الإكسل وإرجاع الصور الأولى
 const K = { cfg: 'maqadi.cfg', data: 'maqadi.data', photos: 'maqadi.photos', me: 'maqadi.me', theme: 'maqadi.theme' };
 
 /* ---------- أدوات صغيرة ---------- */
@@ -35,6 +36,7 @@ function normalize(d) {
   d = d || {};
   for (const k of MAPS) b[k] = d[k] && typeof d[k] === 'object' ? d[k] : {};
   b.last = d.last && d.last.n ? d.last : null;
+  b.mig = typeof d.mig === 'number' ? d.mig : 0;
   return b;
 }
 
@@ -79,7 +81,7 @@ function catList() {
   CATS.forEach(([id, n], i) => {
     const o = x[id] || {};
     if (o.h && id !== 'other') return;
-    out.push({ id, name: o.n || n, base: true, o: typeof o.o === 'number' ? o.o : i });
+    out.push({ id, name: o.n || n, base: true, o: typeof o.o === 'number' ? o.o : (id === 'other' ? 1000 : i) });
   });
   for (const id of Object.keys(x)) {
     const o = x[id];
@@ -94,6 +96,52 @@ function refreshCats() {
   catOrder = Object.fromEntries(CL.map((c, i) => [c.id, i]));
 }
 const validCat = (c) => (catName[c] ? c : 'other');
+
+/* ---------- ترحيل البيانات (مرة واحدة لكل عائلة) ---------- */
+// يجعل الأقسام والأغراض الجاهزة مطابقة لقائمة الإكسل، ويدمج الأغراض المضافة يدوياً
+// إذا صار لها مربع جاهز بنفس الاسم، ويحذف الصور الملتقطة للأغراض الجاهزة لتعود أيقوناتها الأولى.
+const OLD_CAT_NAMES = { 'ألبان وخبز': 'dairy' };
+function migrate() {
+  const d = S.data;
+  if ((d.mig || 0) >= DATA_VER) return false;
+  const baseIds = new Set(CATALOG.map((c) => c[0]));
+  const baseByName = {};
+  CATALOG.forEach((c) => { baseByName[norm(c[1])] = c[0]; });
+  const catByName = {};
+  CATS.forEach((c) => { catByName[norm(c[1])] = c[0]; });
+  for (const n in OLD_CAT_NAMES) catByName[norm(n)] = OLD_CAT_NAMES[n];
+
+  const sel = {}, got = {}, custom = {}, catx = {}, catMap = {}, dropPhotos = [];
+  for (const id of Object.keys(d.catx)) {
+    if (baseCat[id]) continue; // تعديلات الأقسام الجاهزة تُلغى لتتبع الإكسل
+    const o = d.catx[id];
+    if (!o || !o.n) continue;
+    const m = catByName[norm(o.n)];
+    if (m) catMap[id] = m; else catx[id] = { n: o.n, t: o.t || Date.now() };
+  }
+  for (const id of baseIds) { if (d.sel[id]) sel[id] = true; if (d.got[id]) got[id] = true; }
+  for (const id of Object.keys(d.custom)) {
+    const c = d.custom[id];
+    if (!c || !c.n) continue;
+    const b = baseByName[norm(c.n)];
+    if (b) {
+      if (d.sel[id]) sel[b] = true;
+      if (d.got[id]) got[b] = true;
+      dropPhotos.push(id);
+      continue;
+    }
+    custom[id] = Object.assign({}, c, { c: catMap[c.c] || c.c });
+    if (d.sel[id]) sel[id] = true;
+    if (d.got[id]) got[id] = true;
+  }
+  for (const id of Object.keys(got)) if (!sel[id]) delete got[id];
+  for (const id of baseIds) dropPhotos.push(id);
+  for (const id of RETIRED) dropPhotos.push(id);
+
+  apply({ sel, got, custom, catx, names: {}, cats: {}, hidden: {}, mig: DATA_VER });
+  for (const id of new Set(dropPhotos)) if (S.photos[id]) setPhoto(id, null);
+  return true;
+}
 
 /* ---------- الأغراض ---------- */
 function allItems() {
@@ -642,17 +690,27 @@ async function startCloud(cfg) {
     for (const id in localPhotos) cloud.setPhoto(id, localPhotos[id]);
     LS.del(K.photos);
 
+    let dataReady = false, photosReady = false, migrated = false;
+    const tryMigrate = () => {
+      if (migrated || !dataReady || !photosReady) return;
+      migrated = true;
+      if (migrate()) toast('تم تحديث قائمة الأغراض');
+    };
     fb.onSnapshot(ref, { includeMetadataChanges: true }, (snap) => {
       S.data = normalize(snap.data());
       S.sync = snap.metadata.fromCache ? 'offline' : 'online';
+      if (!snap.metadata.fromCache && snap.exists && snap.exists()) dataReady = true;
       render();
+      tryMigrate();
     }, syncError);
-    fb.onSnapshot(photosCol, (qs) => {
+    fb.onSnapshot(photosCol, { includeMetadataChanges: true }, (qs) => {
       const p = {};
       qs.forEach((x) => { const d = x.data(); if (d && d.d) p[x.id] = d.d; });
       S.photos = p;
       S.photoErr = '';
+      if (!(qs.metadata && qs.metadata.fromCache)) photosReady = true;
       render();
+      tryMigrate();
     }, (e) => { console.error(e); S.photoErr = (e && (e.code || e.message)) || 'photos'; S.syncErr = 'الصور: ' + S.photoErr; renderSync(); });
   } catch (e) { syncError(e); }
 }
@@ -780,6 +838,7 @@ function bind() {
 
 applyTheme();
 bind();
+if (!S.cfg) migrate();
 render();
 if (S.cfg) startCloud(S.cfg);
 if ('serviceWorker' in navigator && !window.AndroidBridge && location.protocol === 'https:') {
