@@ -1,8 +1,8 @@
 // يحفظ ملفات التطبيق ليفتح بدون إنترنت. غيّر رقم النسخة عند تعديل أي ملف.
-const CACHE = 'maqadi-v3';
+const CACHE = 'maqadi-v4';
 const FILES = [
   './', './index.html', './app.js', './catalog.js', './firebase.js', './manifest.webmanifest',
-  './fonts/ReadexPro.ttf', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'
+  './items.webp', './fonts/ReadexPro.ttf', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (e) => {

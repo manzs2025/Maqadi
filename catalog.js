@@ -191,3 +191,27 @@ export const CATALOG = [
   ['pads', 'فوط صحية', 'care', '🩹'],
   ['shavefoam', 'موس حلاقه', 'care', '🪒']
 ];
+
+// صور الأغراض: ملف واحد items.webp فيه 150 صورة، كل صورة 192×192، في شبكة 15 عموداً × 10 صفوف.
+// ترتيب المعرّفات هنا هو ترتيب الصور في الملف (من اليسار لليمين ثم سطراً سطراً).
+// الغرض الذي ليس له صورة هنا يظهر برمزه (الإيموجي).
+export const SPRITE = {
+  file: 'items.webp', cols: 15, rows: 10,
+  ids: [
+    'milk', 'milkpowder', 'evapmilk', 'nestle', 'qishta', 'qishtacan', 'laban', 'yogurt', 'labneh', 'kiri',
+    'triangles', 'slices', 'kraft', 'cheesecups', 'feta', 'mozzarella', 'cookcream', 'whipcream', 'butter', 'eggs',
+    'bread', 'samoli', 'rusk', 'toastw', 'toastb', 'milletflour', 'flour', 'wwflour', 'yeast', 'cakeyeast',
+    'pasta', 'spaghetti', 'vermicelli', 'pakvermicelli', 'indomie', 'dreamwhip', 'cream', 'jelly', 'nutella', 'peanuts',
+    'bakingpowder', 'vanilla', 'custard', 'starch', 'vanillacake', 'chococake', 'familycake', 'cocoa', 'chicken', 'breast',
+    'minced', 'meat', 'fish', 'shrimp', 'sausage', 'nuggets', 'beefburger', 'chickenburger', 'tomato', 'cucumber',
+    'onion', 'garlic', 'greenonion', 'potato', 'carrot', 'pepper', 'lettuce', 'arugula', 'lemon', 'zucchini',
+    'parsley', 'coriander', 'banana', 'apple', 'orange', 'grapes', 'watermelon', 'strawberry', 'eggplant', 'molokhia',
+    'greenbeans', 'rice', 'dates', 'sugar', 'salt', 'oil', 'oliveoil', 'tea', 'coffee', 'cardamom',
+    'qassimmix', 'spices', 'honey', 'lentils', 'oats', 'cereal', 'ginger', 'chamomile', 'herbaltea', 'foul',
+    'tuna', 'tomatopaste', 'ketchup', 'corn', 'olives', 'kidneybeans', 'mushroom', 'chickpeas', 'pineapple', 'sauces',
+    'tahini', 'halawa', 'water', 'juice', 'juicepowder', 'soda', 'teabiscuit', 'biscuit', 'chips', 'nuts',
+    'icecream', 'detergent', 'soap', 'lux', 'softener', 'dishsoap', 'bleach', 'floor', 'freshener', 'tissue',
+    'toiletpaper', 'trashbags', 'sponge', 'sufra', 'ovencleaner', 'steelwool', 'papercups', 'plates', 'spoons', 'forks',
+    'foil', 'wrap', 'shampoo', 'toothpaste', 'toothbrush', 'deodorant', 'diapers', 'wetwipes', 'pads', 'shavefoam'
+  ]
+};

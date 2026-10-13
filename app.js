@@ -1,6 +1,6 @@
-import { CATS, CATALOG, RETIRED } from './catalog.js';
+import { CATS, CATALOG, RETIRED, SPRITE } from './catalog.js';
 
-const VERSION = '1.2';
+const VERSION = '1.3';
 const DATA_VER = 2; // رقم ترحيل البيانات: 2 = قائمة الإكسل وإرجاع الصور الأولى
 const K = { cfg: 'maqadi.cfg', data: 'maqadi.data', photos: 'maqadi.photos', me: 'maqadi.me', theme: 'maqadi.theme' };
 
@@ -162,8 +162,14 @@ const sortItems = (list) => list.sort((a, b) => (catOrder[a.cat] - catOrder[b.ca
 const itemById = (id) => allItems().find((i) => i.id === id);
 const lastStamp = (name) => ({ n: name, b: S.me || '', t: Date.now() });
 
+const SPR = Object.fromEntries(SPRITE.ids.map((id, k) => [id, k]));
+const SPR_SIZE = `${SPRITE.cols * 100}% ${SPRITE.rows * 100}%`;
 function visual(i) {
   if (S.photos[i.id]) return `<img src="${esc(S.photos[i.id])}" alt="">`;
+  if (i.base && SPR[i.id] !== undefined) {
+    const k = SPR[i.id], x = (k % SPRITE.cols) * 100 / (SPRITE.cols - 1), y = Math.floor(k / SPRITE.cols) * 100 / (SPRITE.rows - 1);
+    return `<span class="spr" aria-hidden="true" style="background-size:${SPR_SIZE};background-position:${x.toFixed(4)}% ${y.toFixed(4)}%"></span>`;
+  }
   if (i.emoji) return `<span class="em" aria-hidden="true">${i.emoji}</span>`;
   return `<span class="ini" aria-hidden="true">${esc(i.name.charAt(0))}</span>`;
 }
