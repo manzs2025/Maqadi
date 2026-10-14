@@ -1,6 +1,6 @@
 import { CATS, CATALOG, RETIRED, SPRITE } from './catalog.js';
 
-const VERSION = '1.3';
+const VERSION = '1.4';
 const DATA_VER = 2; // رقم ترحيل البيانات: 2 = قائمة الإكسل وإرجاع الصور الأولى
 const K = { cfg: 'maqadi.cfg', data: 'maqadi.data', photos: 'maqadi.photos', me: 'maqadi.me', theme: 'maqadi.theme' };
 
@@ -629,8 +629,17 @@ function joinCode(cfg) {
   const f = cfg.fb;
   return 'MQD1.' + b64e(JSON.stringify({ k: f.apiKey, d: f.authDomain || '', p: f.projectId, a: f.appId, f: cfg.fam }));
 }
+// تنظيف النص الملصوق: الآيفون وواتساب يضيفان أحياناً علامات اتجاه مخفية وعلامات تنصيص منحنية
+function cleanPaste(text) {
+  return String(text || '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF\u061C]/g, '')
+    .replace(/[\u00A0\u2000-\u200A\u202F\u3000]/g, ' ')
+    .replace(/[\u201C\u201D\u201E\u201F\u2033\u00AB\u00BB\uFF02]/g, '"')
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\uFF07]/g, "'")
+    .replace(/[\uFF1A\uFE13]/g, ':');
+}
 function parseJoin(text) {
-  const t = String(text || '').replace(/\s+/g, '');
+  const t = cleanPaste(text).replace(/\s+/g, '');
   const m = t.match(/MQD1\.([A-Za-z0-9+/=]+)/);
   if (!m) return null;
   try {
@@ -643,7 +652,8 @@ function parseFirebase(text) {
   const o = {};
   const re = /(apiKey|authDomain|projectId|storageBucket|messagingSenderId|appId)["']?\s*:\s*["']([^"']+)["']/g;
   let m;
-  while ((m = re.exec(String(text || '')))) o[m[1]] = m[2];
+  const t = cleanPaste(text);
+  while ((m = re.exec(t))) o[m[1]] = m[2].trim();
   if (!o.apiKey || !o.projectId || !o.appId) return null;
   if (!o.authDomain) o.authDomain = `${o.projectId}.firebaseapp.com`;
   return { apiKey: o.apiKey, authDomain: o.authDomain, projectId: o.projectId, appId: o.appId };
@@ -742,6 +752,9 @@ function openSettings() {
       ${c ? `${errMsg}<p>هذا الجوال مربوط بقائمة العائلة. لربط جوال آخر أرسل له «رمز الربط» وألصقه عنده في الإعدادات.</p>
         <div class="field"><label for="sCode">رمز الربط</label><textarea id="sCode" readonly>${esc(joinCode(c))}</textarea></div>
         <div class="btns"><button type="button" class="btn green" id="sShareCode">إرسال الرمز</button><button type="button" class="btn ghost" id="sCopy">نسخ</button></div>
+        <div class="card" style="background:var(--bg)"><h3>قائمة لعائلة أخرى</h3>
+          <p>رمز ينشئ قائمة جديدة مستقلة عن قائمتكم (لأخيك مثلاً)، دون الحاجة لإعدادات Firebase. أرسله لأول جوال عندهم، ثم يرسل هو رمز الربط لبقية جواله.</p>
+          <button type="button" class="btn ghost" id="sNewFam">إرسال رمز قائمة جديدة</button></div>
         <button type="button" class="btn danger" id="sUnlink">فصل هذا الجوال عن المزامنة</button>`
       : `<p>القائمة الآن محفوظة على هذا الجوال فقط.</p>
         <div class="field"><label for="sJoin">عندك رمز ربط من الجوال الآخر؟ ألصقه هنا</label><textarea id="sJoin" placeholder="MQD1.…"></textarea></div>
@@ -778,6 +791,10 @@ function openSettings() {
       const code = joinCode(c);
       $('#sShareCode', root).onclick = () => shareOut(`رمز ربط تطبيق مقاضي البيت:\n${code}`, 'رمز الربط');
       $('#sCopy', root).onclick = async () => toast((await copyText(code)) ? 'نُسخ رمز الربط' : 'انسخ الرمز يدوياً');
+      $('#sNewFam', root).onclick = () => {
+        const nc = joinCode({ fb: c.fb, fam: newFamilyId() });
+        shareOut(`رمز إنشاء قائمة جديدة في تطبيق مقاضي البيت:\n(افتح التطبيق ← الإعدادات ← ألصق الرمز ← ربط)\n${nc}`, 'قائمة جديدة');
+      };
       twoTap($('#sUnlink', root), 'اضغط مرة أخرى للتأكيد', () => {
         LS.set(K.data, S.data);
         LS.set(K.photos, S.photos);
