@@ -1,7 +1,7 @@
 import { CATS, CATALOG, RETIRED, SPRITE } from './catalog.js';
 
-const VERSION = '1.4';
-const DATA_VER = 2; // رقم ترحيل البيانات: 2 = قائمة الإكسل وإرجاع الصور الأولى
+const VERSION = '1.5';
+const DATA_VER = 3; // رقم ترحيل البيانات: 2 = قائمة الإكسل وإرجاع الصور الأولى، 3 = إضافة ٤٩ غرضاً و٣ أقسام
 const K = { cfg: 'maqadi.cfg', data: 'maqadi.data', photos: 'maqadi.photos', me: 'maqadi.me', theme: 'maqadi.theme' };
 
 /* ---------- أدوات صغيرة ---------- */
@@ -101,9 +101,14 @@ const validCat = (c) => (catName[c] ? c : 'other');
 // يجعل الأقسام والأغراض الجاهزة مطابقة لقائمة الإكسل، ويدمج الأغراض المضافة يدوياً
 // إذا صار لها مربع جاهز بنفس الاسم، ويحذف الصور الملتقطة للأغراض الجاهزة لتعود أيقوناتها الأولى.
 const OLD_CAT_NAMES = { 'ألبان وخبز': 'dairy' };
+// mig < 2: ترحيل كامل (يلغي تعديلات الأغراض والأقسام الجاهزة ويرجع صورها الأولى).
+// mig = 2: ترحيل خفيف عند إضافة أغراض وأقسام جاهزة جديدة: يدمج فقط الأغراض والأقسام
+//          المضافة يدوياً التي صار لها مثيل جاهز بنفس الاسم، ويُبقي باقي تعديلات العائلة.
 function migrate() {
   const d = S.data;
-  if ((d.mig || 0) >= DATA_VER) return false;
+  const from = d.mig || 0;
+  if (from >= DATA_VER) return false;
+  const full = from < 2;
   const baseIds = new Set(CATALOG.map((c) => c[0]));
   const baseByName = {};
   CATALOG.forEach((c) => { baseByName[norm(c[1])] = c[0]; });
@@ -113,13 +118,17 @@ function migrate() {
 
   const sel = {}, got = {}, custom = {}, catx = {}, catMap = {}, dropPhotos = [];
   for (const id of Object.keys(d.catx)) {
-    if (baseCat[id]) continue; // تعديلات الأقسام الجاهزة تُلغى لتتبع الإكسل
     const o = d.catx[id];
+    if (baseCat[id]) { if (!full && o) catx[id] = o; continue; }
     if (!o || !o.n) continue;
     const m = catByName[norm(o.n)];
-    if (m) catMap[id] = m; else catx[id] = { n: o.n, t: o.t || Date.now() };
+    if (m) catMap[id] = m; else catx[id] = full ? { n: o.n, t: o.t || Date.now() } : o;
   }
-  for (const id of baseIds) { if (d.sel[id]) sel[id] = true; if (d.got[id]) got[id] = true; }
+  if (full) { for (const id of baseIds) { if (d.sel[id]) sel[id] = true; if (d.got[id]) got[id] = true; } }
+  else {
+    for (const id of Object.keys(d.sel)) if (!d.custom[id]) sel[id] = d.sel[id];
+    for (const id of Object.keys(d.got)) if (!d.custom[id]) got[id] = d.got[id];
+  }
   for (const id of Object.keys(d.custom)) {
     const c = d.custom[id];
     if (!c || !c.n) continue;
@@ -127,6 +136,7 @@ function migrate() {
     if (b) {
       if (d.sel[id]) sel[b] = true;
       if (d.got[id]) got[b] = true;
+      if (!full && d.hidden[b]) d.hidden[b] = undefined;
       dropPhotos.push(id);
       continue;
     }
@@ -135,10 +145,16 @@ function migrate() {
     if (d.got[id]) got[id] = true;
   }
   for (const id of Object.keys(got)) if (!sel[id]) delete got[id];
-  for (const id of baseIds) dropPhotos.push(id);
-  for (const id of RETIRED) dropPhotos.push(id);
+  if (full) { for (const id of baseIds) dropPhotos.push(id); for (const id of RETIRED) dropPhotos.push(id); }
 
-  apply({ sel, got, custom, catx, names: {}, cats: {}, hidden: {}, mig: DATA_VER });
+  const ch = { sel, got, custom, catx, mig: DATA_VER };
+  if (full) Object.assign(ch, { names: {}, cats: {}, hidden: {} });
+  else {
+    const hidden = {};
+    for (const id of Object.keys(d.hidden)) if (d.hidden[id]) hidden[id] = true;
+    ch.hidden = hidden;
+  }
+  apply(ch);
   for (const id of new Set(dropPhotos)) if (S.photos[id]) setPhoto(id, null);
   return true;
 }

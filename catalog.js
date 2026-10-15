@@ -1,19 +1,22 @@
-// الأقسام والأغراض الجاهزة (حسب ملف الإكسل المعتمد، الإصدار 1.2).
+// الأقسام والأغراض الجاهزة (الإصدار 1.5).
 // لإضافة غرض دائم: أضف سطراً بالشكل [المعرّف, الاسم, القسم, الرمز]
 // المعرّف حروف إنجليزية صغيرة وأرقام فقط، ولا يتكرر، ولا يُغيَّر بعد اعتماده
-// (اختيارات الطلبات والمشتريات محفوظة بالمعرّف).
+// (اختيارات الطلبات والمشتريات محفوظة بالمعرّف). الرمز (الإيموجي) يظهر فقط إن لم تكن للغرض صورة.
 
 export const CATS = [
   ['dairy', 'ألبان وحليب'],
   ['bakery', 'دقيق وخبز'],
   ['sweets', 'حلى وشكولاته'],
   ['meat', 'لحوم ودواجن'],
+  ['frozen', 'مجمدات'],
   ['veg', 'خضار وفواكه'],
   ['pantry', 'مؤن'],
+  ['spices', 'توابل'],
   ['cans', 'معلبات'],
   ['drinks', 'مشروبات وسناكس'],
   ['clean', 'منظفات'],
   ['care', 'عناية شخصية'],
+  ['baby', 'مستلزمات الطفل'],
   ['other', 'أخرى']
 ];
 
@@ -42,7 +45,7 @@ export const CATALOG = [
   ['whipcream', 'كريمة خفق', 'dairy', '🧁'],
   ['butter', 'زبدة', 'dairy', '🧈'],
   ['eggs', 'بيض', 'dairy', '🥚'],
-
+  ['evaporated', 'حليب مبخر', 'dairy', '🥫'],
   // دقيق وخبز
   ['bread', 'خبز', 'bakery', '🫓'],
   ['samoli', 'صامولي', 'bakery', '🥖'],
@@ -59,7 +62,7 @@ export const CATALOG = [
   ['vermicelli', 'شعيرية', 'bakery', '🍜'],
   ['pakvermicelli', 'شعيرية باكستانية', 'bakery', '🍜'],
   ['indomie', 'اندومي', 'bakery', '🍜'],
-
+  ['tortilla', 'تورتيلا', 'bakery', '🌮'],
   // حلى وشكولاته
   ['dreamwhip', 'دريم ويب', 'sweets', '🍦'],
   ['cream', 'كريمة', 'sweets', '🍨'],
@@ -74,7 +77,6 @@ export const CATALOG = [
   ['chococake', 'كيك شوكولاته', 'sweets', '🎂'],
   ['familycake', 'كيك العائلة', 'sweets', '🧁'],
   ['cocoa', 'شوكولاته بودرة', 'sweets', '🍫'],
-
   // لحوم ودواجن
   ['chicken', 'دجاج', 'meat', '🍗'],
   ['breast', 'صدور دجاج', 'meat', '🐔'],
@@ -86,7 +88,13 @@ export const CATALOG = [
   ['nuggets', 'نجت', 'meat', '🍤'],
   ['beefburger', 'همبرجر لحم', 'meat', '🍔'],
   ['chickenburger', 'همبرجر دجاج', 'meat', '🍔'],
-
+  // مجمدات
+  ['frozenveg', 'خضار مجمدة', 'frozen', '🥦'],
+  ['frozenokra', 'بامية مجمدة', 'frozen', '🥒'],
+  ['frozencorn', 'ذرة مجمدة', 'frozen', '🌽'],
+  ['frozenmolokhia', 'ملوخية مجمدة', 'frozen', '🥬'],
+  ['frozenbeans', 'فاصولياء مجمدة', 'frozen', '🫘'],
+  ['fries', 'بطاطس مجمدة', 'frozen', '🍟'],
   // خضار وفواكه
   ['tomato', 'طماطم', 'veg', '🍅'],
   ['cucumber', 'خيار', 'veg', '🥒'],
@@ -111,7 +119,6 @@ export const CATALOG = [
   ['eggplant', 'باذنجان', 'veg', '🍆'],
   ['molokhia', 'ملوخيه', 'veg', '🥬'],
   ['greenbeans', 'فاصولياء', 'veg', '🫘'],
-
   // مؤن
   ['rice', 'رز', 'pantry', '🍚'],
   ['dates', 'تمر', 'pantry', '🌴'],
@@ -131,7 +138,19 @@ export const CATALOG = [
   ['ginger', 'زنجبيل', 'pantry', '🍠'],
   ['chamomile', 'بابونج', 'pantry', '🌼'],
   ['herbaltea', 'زهورات', 'pantry', '🌺'],
-
+  ['ghee', 'سمن', 'pantry', '🧈'],
+  ['maggi', 'ماجي', 'pantry', '🍲'],
+  ['vinegar', 'خل', 'pantry', '🍶'],
+  // توابل
+  ['blackpepper', 'فلفل اسود', 'spices', '🫙'],
+  ['cumin', 'كمون', 'spices', '🫙'],
+  ['drycoriander', 'كزبرة ناشفة', 'spices', '🫙'],
+  ['paprika', 'بابريكا', 'spices', '🌶️'],
+  ['turmeric', 'كركم', 'spices', '🫙'],
+  ['mixedspices', 'بهارات مشكلة', 'spices', '🫙'],
+  ['garlicpowder', 'ثوم بودرة', 'spices', '🧄'],
+  ['sumac', 'سماق', 'spices', '🫙'],
+  ['curry', 'كاري', 'spices', '🍛'],
   // معلبات
   ['foul', 'فول معلب', 'cans', '🥫'],
   ['tuna', 'تونة', 'cans', '🐟'],
@@ -146,7 +165,14 @@ export const CATALOG = [
   ['sauces', 'صوصات', 'cans', '🍶'],
   ['tahini', 'طحينة سائلة', 'cans', '🫙'],
   ['halawa', 'حلاوه طحينية', 'cans', '🥮'],
-
+  ['jam', 'مربى', 'cans', '🍓'],
+  ['pickles', 'مخلل', 'cans', '🥒'],
+  ['hotsauce', 'شطة', 'cans', '🌶️'],
+  ['mayo', 'مايونيز', 'cans', '🫙'],
+  ['frenchdressing', 'صلصة فرنسية', 'cans', '🥗'],
+  ['ranch', 'رانش', 'cans', '🥗'],
+  ['soysauce', 'صويا', 'cans', '🍶'],
+  ['pommolasses', 'دبس رمان', 'cans', '🍷'],
   // مشروبات وسناكس
   ['water', 'مياه', 'drinks', '💧'],
   ['juice', 'عصير', 'drinks', '🧃'],
@@ -157,7 +183,8 @@ export const CATALOG = [
   ['chips', 'شيبس', 'drinks', '🍟'],
   ['nuts', 'مكسرات', 'drinks', '🌰'],
   ['icecream', 'آيسكريم', 'drinks', '🍦'],
-
+  ['blackcoffee', 'قهوة سوداء', 'drinks', '☕'],
+  ['greentea', 'شاهي أخضر', 'drinks', '🍵'],
   // منظفات
   ['detergent', 'صابون غسيل', 'clean', '🧺'],
   ['soap', 'صابون يد', 'clean', '🧴'],
@@ -180,7 +207,20 @@ export const CATALOG = [
   ['forks', 'شوكة بلاستيك', 'clean', '🍴'],
   ['foil', 'قصدير', 'clean', '🌯'],
   ['wrap', 'ورق تغليف', 'clean', '📦'],
-
+  ['almalaq', 'العملاق', 'clean', '🧴'],
+  ['glasscleaner', 'منظف زجاج', 'clean', '🪟'],
+  ['meatbags', 'أكياس لحم', 'clean', '🛍️'],
+  ['kitchentowels', 'مناديل مطبخ', 'clean', '🧻'],
+  ['dwcapsules', 'كبسولة غسالة مواعين', 'clean', '💊'],
+  ['dwsalt', 'ملح غسالة مواعين', 'clean', '🧂'],
+  ['dwrinse', 'ملمع غسالة المواعين', 'clean', '✨'],
+  ['dwcleaner', 'منظف غسالة المواعين', 'clean', '🧽'],
+  ['finish', 'فنش', 'clean', '🧼'],
+  ['jif', 'منظف جف', 'clean', '🧴'],
+  ['bakhoor', 'بخور', 'clean', '🔥'],
+  ['charcoal', 'فحم سريع اشتعال', 'clean', '⚫'],
+  ['bakingpaper', 'ورق زبدة', 'clean', '📜'],
+  ['smalltrash', 'اكياس نفايات صغيرة', 'clean', '🗑️'],
   // عناية شخصية
   ['shampoo', 'شامبو', 'care', '🧴'],
   ['toothpaste', 'معجون أسنان', 'care', '🦷'],
@@ -189,14 +229,19 @@ export const CATALOG = [
   ['diapers', 'حفائض', 'care', '👶'],
   ['wetwipes', 'مناديل مبللة', 'care', '🧻'],
   ['pads', 'فوط صحية', 'care', '🩹'],
-  ['shavefoam', 'موس حلاقه', 'care', '🪒']
+  ['shavefoam', 'موس حلاقه', 'care', '🪒'],
+  ['conditioner', 'بلسم', 'care', '🧴'],
+  ['bodywash', 'غسول جسم', 'care', '🧼'],
+  ['femwash', 'غسول نسائي', 'care', '🧴'],
+  // مستلزمات الطفل
+  ['babyshampoo', 'شامبو اطفال', 'baby', '🍼'],
+  ['babywash', 'شاور جل اطفال', 'baby', '🛁']
 ];
 
-// صور الأغراض: ملف واحد items.webp فيه 150 صورة، كل صورة 192×192، في شبكة 15 عموداً × 10 صفوف.
-// ترتيب المعرّفات هنا هو ترتيب الصور في الملف (من اليسار لليمين ثم سطراً سطراً).
-// الغرض الذي ليس له صورة هنا يظهر برمزه (الإيموجي).
+// صور الأغراض: ملف واحد items.webp فيه 199 صورة، كل صورة 192×192، في شبكة 15 عموداً × 14 صفاً.
+// ترتيب المعرّفات هنا هو ترتيب الصور في الملف (من اليسار لليمين ثم سطراً سطراً). الإضافات الجديدة تُلحق بالآخر.
 export const SPRITE = {
-  file: 'items.webp', cols: 15, rows: 10,
+  file: 'items.webp', cols: 15, rows: 14,
   ids: [
     'milk', 'milkpowder', 'evapmilk', 'nestle', 'qishta', 'qishtacan', 'laban', 'yogurt', 'labneh', 'kiri',
     'triangles', 'slices', 'kraft', 'cheesecups', 'feta', 'mozzarella', 'cookcream', 'whipcream', 'butter', 'eggs',
@@ -212,6 +257,11 @@ export const SPRITE = {
     'tahini', 'halawa', 'water', 'juice', 'juicepowder', 'soda', 'teabiscuit', 'biscuit', 'chips', 'nuts',
     'icecream', 'detergent', 'soap', 'lux', 'softener', 'dishsoap', 'bleach', 'floor', 'freshener', 'tissue',
     'toiletpaper', 'trashbags', 'sponge', 'sufra', 'ovencleaner', 'steelwool', 'papercups', 'plates', 'spoons', 'forks',
-    'foil', 'wrap', 'shampoo', 'toothpaste', 'toothbrush', 'deodorant', 'diapers', 'wetwipes', 'pads', 'shavefoam'
+    'foil', 'wrap', 'shampoo', 'toothpaste', 'toothbrush', 'deodorant', 'diapers', 'wetwipes', 'pads', 'shavefoam',
+    'ghee', 'maggi', 'vinegar', 'tortilla', 'evaporated', 'frozenveg', 'frozenokra', 'frozencorn', 'frozenmolokhia', 'frozenbeans',
+    'fries', 'blackcoffee', 'greentea', 'blackpepper', 'cumin', 'drycoriander', 'paprika', 'turmeric', 'mixedspices', 'garlicpowder',
+    'sumac', 'curry', 'jam', 'pickles', 'hotsauce', 'mayo', 'frenchdressing', 'ranch', 'soysauce', 'pommolasses',
+    'almalaq', 'glasscleaner', 'meatbags', 'kitchentowels', 'dwcapsules', 'dwsalt', 'dwrinse', 'dwcleaner', 'finish', 'jif',
+    'bakhoor', 'charcoal', 'bakingpaper', 'smalltrash', 'conditioner', 'bodywash', 'femwash', 'babyshampoo', 'babywash'
   ]
 };
